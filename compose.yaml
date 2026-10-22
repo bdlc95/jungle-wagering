@@ -1,0 +1,42 @@
+services:
+  postgres:
+    image: postgres:16.15-alpine
+    environment:
+      POSTGRES_USER: jungle
+      POSTGRES_PASSWORD: jungle_local
+      POSTGRES_DB: jungle_wagering
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U jungle -d jungle_wagering
+      interval: 5s
+      timeout: 5s
+      retries: 15
+      start_period: 10s
+
+  localstack:
+    image: localstack/localstack:4.14.0
+    environment:
+      SERVICES: sqs
+      AWS_DEFAULT_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      SQS_ENDPOINT_STRATEGY: path
+      LOCALSTACK_HOST: localhost:4566
+    ports:
+      - "127.0.0.1:4566:4566"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - awslocal sqs list-queues --region us-east-1 > /dev/null 2>&1
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 15s
+
+volumes:
+  postgres_data:
