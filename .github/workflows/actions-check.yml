@@ -1,0 +1,10 @@
+name: Actions availability check
+
+on:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "GitHub Actions is available"
