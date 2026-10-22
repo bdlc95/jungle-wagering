@@ -110,6 +110,8 @@ bun run lint
 
 `bun run test:integration` cria e migra automaticamente o banco separado `jungle_wagering_test`, usa filas próprias por cenário e executa os arquivos em sequência. Também aplica, reverte e reaplica a migration em um banco descartável. Os testes usam PostgreSQL e LocalStack reais e cobrem concorrência, três processos, idempotência, inbox/outbox, referências fora de ordem, DLQ, desligamento e recuperação após falhas temporárias de PostgreSQL e SQS.
 
+O [workflow de verificação](./.github/workflows/verify.yml) repete esses testes, lint, build e smoke em um ambiente limpo do GitHub Actions a cada push e pull request.
+
 ## Arquitetura
 
 Veja [ARCHITECTURE.md](./ARCHITECTURE.md) para invariantes, idempotência, esquema, falhas e limitações conhecidas, e [DELIVERY_AUDIT.md](./DELIVERY_AUDIT.md) para a conferência item a item do enunciado.

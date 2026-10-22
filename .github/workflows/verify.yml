@@ -1,0 +1,74 @@
+name: Verify wagering processor
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.4.3'
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Start PostgreSQL and LocalStack
+        run: docker compose up -d --wait
+
+      - name: Apply local migration and create queues
+        run: |
+          bun run db:migrate
+          bun run infra:setup
+
+      - name: Domain tests
+        run: bun run test
+
+      - name: Integration tests with real containers
+        run: bun run test:integration
+
+      - name: API tests
+        run: bun run test:e2e
+
+      - name: Typecheck and lint
+        run: |
+          bun run typecheck
+          bun run lint
+
+      - name: Build
+        run: bun run build
+
+      - name: Smoke compiled API
+        shell: bash
+        run: |
+          PORT=3100 bun run start:prod > /tmp/jungle-api.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          ready=0
+          for attempt in {1..30}; do
+            if curl -fsS http://localhost:3100/health/ready > /dev/null 2>&1; then
+              ready=1
+              break
+            fi
+            sleep 1
+          done
+          if [[ "$ready" != 1 ]]; then
+            cat /tmp/jungle-api.log
+            exit 1
+          fi
+          API_URL=http://localhost:3100 bun run smoke
+
+      - name: Stop containers
+        if: always()
+        run: docker compose down
